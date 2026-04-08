@@ -1,33 +1,21 @@
-# Personal Blog (Astro)
+# Townsend 博士知识库（Hugo）
 
-This project is an Astro blog starter configured for GitHub Pages deployment.
+这个仓库现在使用 Hugo + PaperMod 构建，面向学术写作与研究知识管理。
 
-## Local development
+## 本地运行
 
-```bash
-npm install
-npm run dev
+```powershell
+C:\Users\Townsend\AppData\Local\Microsoft\WinGet\Packages\Hugo.Hugo.Extended_Microsoft.Winget.Source_8wekyb3d8bbwe\hugo.exe server -D
 ```
 
-## Build locally
+访问 `http://localhost:1313/my-blog/`（如果是项目站点）或 `http://localhost:1313/`（本地默认）。
 
-```bash
-npm run build
-npm run preview
-```
+## 内容目录
 
-## Deploy to GitHub Pages
+- `content/notes/`: 研究笔记
+- `content/posts/`: 博客文章
+- `content/about/`: 个人介绍
 
-1. Push this project to a GitHub repository.
-2. In GitHub, open `Settings -> Pages`.
-3. Set `Source` to `GitHub Actions`.
-4. Push to the `main` branch.
-5. Wait for the `Deploy to GitHub Pages` workflow to finish.
+## 发布到 GitHub Pages
 
-The workflow automatically sets:
-- `SITE`: `https://<owner>.github.io`
-- `BASE_PATH`: `/` for `<owner>.github.io` repo, otherwise `/<repo-name>`
-
-So this works for both:
-- user/org site repos (`<owner>.github.io`)
-- project site repos (`any-other-repo`)
+推送到 `main` 后，`.github/workflows/deploy.yml` 会自动构建并发布到 GitHub Pages。

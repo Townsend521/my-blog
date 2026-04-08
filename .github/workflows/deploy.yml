@@ -18,46 +18,39 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HUGO_VERSION: 0.160.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
+          submodules: recursive
+          fetch-depth: 0
 
-      - name: Configure site URL and base path
-        shell: bash
-        run: |
-          OWNER="${GITHUB_REPOSITORY_OWNER}"
-          REPO="${GITHUB_REPOSITORY#*/}"
-          SITE="https://${OWNER}.github.io"
-
-          if [ "$REPO" = "${OWNER}.github.io" ]; then
-            BASE_PATH="/"
-          else
-            BASE_PATH="/${REPO}"
-          fi
-
-          echo "SITE=${SITE}" >> "$GITHUB_ENV"
-          echo "BASE_PATH=${BASE_PATH}" >> "$GITHUB_ENV"
-          echo "SITE=${SITE}, BASE_PATH=${BASE_PATH}"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Astro
-        run: npm run build
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Build with Hugo
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          OWNER_NAME="${GITHUB_REPOSITORY_OWNER}"
+          if [ "$REPO_NAME" = "${OWNER_NAME}.github.io" ]; then
+            BASE_URL="https://${OWNER_NAME}.github.io/"
+          else
+            BASE_URL="https://${OWNER_NAME}.github.io/${REPO_NAME}/"
+          fi
+          hugo --gc --minify --baseURL "${BASE_URL}"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./public
 
   deploy:
     environment:

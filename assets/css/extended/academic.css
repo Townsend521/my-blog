@@ -1,0 +1,28 @@
+:root {
+  --content-gap: 20px;
+  --main-width: 860px;
+}
+
+.logo a {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.post-entry {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.post-content h2,
+.post-content h3 {
+  margin-top: 1.6em;
+}
+
+.post-content blockquote {
+  border-inline-start: 4px solid #4f6d7a;
+  background: rgba(79, 109, 122, 0.08);
+}
+
+.post-content code {
+  font-size: 0.9em;
+}
