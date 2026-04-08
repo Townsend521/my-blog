@@ -7,15 +7,9 @@ main:
   - name: 简介
     url: /
     weight: 10
-  - name: 论文
-    url: /#papers
-    weight: 11
   - name: 博客
     url: blog/
-    weight: 12
-  - name: 项目
-    url: projects/
-    weight: 13
+    weight: 11
   - name: 经历
     url: experience/
-    weight: 20
+    weight: 12

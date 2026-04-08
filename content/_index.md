@@ -41,18 +41,6 @@ sections:
       columns: '1'
 
   - block: collection
-    id: papers
-    content:
-      title: 代表论文
-      filters:
-        folders:
-          - publications
-        featured_only: true
-    design:
-      view: article-grid
-      columns: 2
-
-  - block: collection
     content:
       title: 最新博客
       page_type: blog
@@ -65,12 +53,4 @@ sections:
     design:
       view: card
 
-  - block: collection
-    content:
-      title: 研究项目
-      filters:
-        folders:
-          - projects
-    design:
-      view: card
 ---
