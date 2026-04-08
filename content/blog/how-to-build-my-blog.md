@@ -1,101 +1,174 @@
 ---
-title: "如何搭建自己的学术博客：从 0 到上线（实战记录）"
-subtitle: "一次真实搭建过程中的选择、踩坑与修复"
+title: "如何用 Hugo 搭建自己的学术博客（完整实战）"
+subtitle: "基于我从 0 到上线的真实流程与踩坑记录"
 date: 2026-04-08
-summary: "记录我从 Astro 到 HugoBlox 的建站过程，以及 GitHub Pages 部署中的关键问题与解决方法。"
+summary: "记录我从选型、部署到页面定制的完整过程，附可直接复制的命令。"
 draft: false
 tags:
-  - 建站
   - Hugo
   - GitHub Pages
   - 学术博客
+  - 建站教程
 ---
 
-最近我开始搭建自己的学术博客，目标不是做一个“好看的网站”，而是做一个能够长期服务博士研究的知识库。
+这篇文章记录了我搭建个人学术博客的完整过程。目标很明确：做一个可长期维护、能服务博士阶段研究工作的知识库网站。
 
-这篇文章记录了我从 0 到上线的完整过程，包括技术选型、部署配置、常见报错，以及最终的页面结构调整。希望能给正在建个人网站的同学一点参考。
+我最终采用了 **Hugo + HugoBlox Academic CV + GitHub Pages** 的组合。下面是可复用的全过程。
 
-## 1. 最初目标：一个可长期维护的博士生知识库
+## 一、为什么选 Hugo
 
-一开始我想要的是一个简单博客，但很快意识到我真正需要的是：
+我最初尝试过 Astro，也成功部署了，但后续更需要“学术主页 + 博客 + 简历/经历”这一类结构，所以切换到 HugoBlox Academic CV。
 
-1. 能持续写研究笔记和复盘。
-2. 能展示个人信息、研究方向和后续论文。
-3. 能稳定部署，不被平台和复杂后端绑住。
+这套方案的优势：
 
-因此我选择了静态站点方案，并优先考虑 GitHub Pages 托管。
+1. 静态站点，部署稳定，成本低。
+2. 学术主页结构成熟，适合博士生。
+3. 内容用 Markdown/YAML 管理，长期维护成本低。
 
-## 2. 第一版尝试：Astro + Markdown
+## 二、环境准备（Windows / PowerShell）
 
-最开始用了 Astro 模板。优点是轻量、快，Markdown 写作体验也很好。
+### 1. 安装 Hugo Extended
 
-为了部署到 GitHub Pages，我做了两件事：
+```powershell
+winget install --id Hugo.Hugo.Extended -e --source winget --accept-package-agreements --accept-source-agreements
+```
 
-- 在配置里处理 `site` 和 `base`，适配仓库子路径部署。
-- 添加 GitHub Actions 工作流，自动构建和发布。
+验证：
 
-这一步能跑通，但后续我希望网站更偏“学术主页 + 履历 + 项目展示”，于是切换到了更适合学术场景的模板。
+```powershell
+hugo version
+```
 
-## 3. 切换到 HugoBlox Academic CV
+### 2. 安装 Go（Hugo Modules 需要）
 
-后面我切到 Hugo，并使用 HugoBlox Academic CV 模板。  
-这个模板更适合博士生和科研人员：
+```powershell
+winget install --id GoLang.Go -e --source winget --accept-package-agreements --accept-source-agreements
+```
 
-- 个人简介、教育背景、研究兴趣展示很完整。
-- 后续补论文、项目、经历都比较顺手。
-- 内容结构清晰，适合长期维护。
+### 3. 安装 Node 依赖（主题构建需要）
 
-## 4. 部署过程中遇到的关键问题
+在项目目录执行：
 
-整个过程中遇到过几类典型问题：
+```powershell
+npm install
+```
 
-### 问题 1：Git 提交失败（身份未配置）
+## 三、创建并初始化站点
 
-报错是 `Author identity unknown`。  
-解决方法是配置 Git 用户名和邮箱，然后重新提交。
+我使用了 HugoBlox 官方 Academic CV 模板，直接克隆最省事：
 
-### 问题 2：`src refspec main does not match any`
+```powershell
+cd D:\8_blox
+git clone https://github.com/HugoBlox/theme-academic-cv.git my-blog
+cd my-blog
+```
 
-这是因为前一个提交没成功，仓库里还没有 commit。  
-先完成第一次提交，再推送 `main` 即可。
+## 四、配置成自己的学术主页
 
-### 问题 3：Pages 工作流第一次失败（Not Found）
+关键文件如下：
 
-在刚切换 GitHub Pages Source 为 `GitHub Actions` 时，第一次跑可能失败。  
-通常重跑一次工作流就能恢复。
+1. `config/_default/hugo.yaml`  
+2. `config/_default/menus.yaml`  
+3. `data/authors/me.yaml`  
+4. `content/_index.md`  
 
-### 问题 4：Hugo 构建依赖问题
+### 必改项
 
-HugoBlox 依赖 Hugo Modules 和前端工具链，因此需要：
+- `baseURL`：改为你的 Pages 地址（例如 `https://用户名.github.io/仓库名/`）。
+- 个人信息：姓名、学校、课题组、研究方向、邮箱。
+- 首页区块：按自己的研究内容调整。
+- 导航菜单：保留你真的会用到的栏目。
 
-- 安装 Go（用于模块）。
-- 安装 Node 依赖（用于 Tailwind 构建）。
+## 五、本地预览与构建
 
-并且在 CI 里增加 `setup-go`，保证 GitHub Actions 环境一致。
+本地开发：
 
-### 问题 5：头像不显示
+```powershell
+hugo server -D
+```
 
-这是我这次最真实的坑：本地有 `me.jpg`，但没提交到 GitHub，导致线上构建拿不到文件。  
-把头像文件加入 Git 并重新部署后就正常显示了。
+生产构建：
 
-## 5. 目前网站结构
+```powershell
+hugo --gc --minify --baseURL "https://用户名.github.io/仓库名/"
+```
 
-为了先保证内容质量，我先保留了最核心导航：
+## 六、推送 GitHub 并启用自动部署
 
-- 简介
-- 博客
-- 经历
+### 1. 初始化并推送仓库
 
-“论文”和“项目”模块暂时隐藏，后续有稳定产出后再开放展示。
+```powershell
+git init -b main
+git add .
+git commit -m "init blog"
+git remote add origin https://github.com/用户名/仓库名.git
+git push -u origin main
+```
 
-## 6. 给刚开始建站同学的建议
+### 2. GitHub Pages 设置
 
-如果你也准备搭建个人学术博客，我的建议是：
+仓库中打开：
 
-1. 先完成“能稳定发布”的最小闭环，再追求样式细节。
-2. 把内容结构先想清楚：博客是输出，知识库是积累。
-3. 部署问题优先查 CI 日志，不要只看网页表现。
-4. 所有关键资源（头像、配置、内容）都要确认已提交到仓库。
+`Settings -> Pages -> Source = GitHub Actions`
 
-对我来说，这个网站不是一次性作品，而是博士阶段的长期基础设施。  
-下一步，我会持续更新研究笔记、方法总结和阶段复盘，让它真正成为“可复用的第二大脑”。
+然后每次 `git push` 都会自动部署。
+
+## 七、我遇到的典型问题与解决方法
+
+### 1. `Author identity unknown`
+
+原因：Git 用户名/邮箱未配置。  
+解决：
+
+```powershell
+git config --global user.name "你的用户名"
+git config --global user.email "你的邮箱"
+```
+
+### 2. `src refspec main does not match any`
+
+原因：还没有成功 commit。  
+解决：先 `git add` + `git commit`，再 `git push -u origin main`。
+
+### 3. Pages 第一次部署报 Not Found
+
+原因：刚切换到 GitHub Actions，Pages 站点状态还没同步。  
+解决：重跑一次 workflow 即可。
+
+### 4. 头像不显示
+
+这是我这次踩过的坑：  
+本地有头像，但文件没提交到 GitHub，线上构建拿不到资源。
+
+正确做法：
+
+1. 头像放在 `assets/media/authors/me.jpg`。  
+2. 确认已 `git add` 并推送。  
+3. 等 Actions 绿灯后强刷页面。
+
+## 八、我当前的网站结构
+
+为了先保证质量，我目前只保留：
+
+1. 简介
+2. 博客
+3. 经历
+
+“论文”和“项目”先隐藏，等内容积累后再开放。
+
+## 九、可复用更新流程
+
+以后每次更新都可以按这个流程：
+
+```powershell
+git add .
+git commit -m "update content"
+git push
+```
+
+等待 GitHub Actions 成功后，网站自动更新。
+
+---
+
+对我来说，博客不是一次性作品，而是博士阶段的长期基础设施。  
+它的核心价值不是“页面好看”，而是把论文阅读、实验复盘和写作经验，沉淀成可复用的研究资产。
