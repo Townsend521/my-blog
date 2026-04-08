@@ -5,12 +5,16 @@ main:
   - name: 简介
     url: /
     weight: 10
+
   - name: 博客
     url: blog/
     weight: 11
+
   - name: 默会知识
     url: blog/mohui-zhishi/
+    parent: 博客
     weight: 12
+
   - name: 经历
     url: experience/
     weight: 13
