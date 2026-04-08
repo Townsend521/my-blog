@@ -1,4 +1,4 @@
-schema: hugoblox/author/v1
+﻿schema: hugoblox/author/v1
 slug: me
 is_owner: true
 name:
@@ -13,9 +13,9 @@ status:
   icon: "🎓"
 role: 2025级博士研究生（摄影测量与遥感）
 bio: |
-  我是中国矿业大学2025级在读博士生，博士专业为摄影测量与遥感，
-  研究方向为大气甲烷反演与量化。
+  我是中国矿业大学2025级在读博士生，博士专业为摄影测量与遥感，研究方向为大气甲烷反演与量化。
   当前依托碳排放与空气质量遥感团队开展研究，聚焦“遥感反演-排放量化-影响归因”技术链条。
+  联系方式：tangxun@cumt.edu.cn
 
 affiliations:
   - name: 中国矿业大学
@@ -25,7 +25,7 @@ links:
   - icon: brands/github
     url: https://github.com/Townsend521
   - icon: at-symbol
-    url: mailto:tangxun@cumt.du.cn
+    url: mailto:tangxun@cumt.edu.cn
     label: 邮件联系
 
 interests:
