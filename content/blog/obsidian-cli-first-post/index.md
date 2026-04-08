@@ -1,7 +1,7 @@
 ﻿---
 title: "Obsidian CLI 写作与发布示例"
-date: 2026-04-08
-draft: false
+date: 2026-04-07T09:00:00+08:00
+draft: true
 summary: "使用 Obsidian CLI 创建博客文章，并通过 GitHub Pages 自动发布。"
 tags:
   - Obsidian
@@ -26,3 +26,4 @@ git add content/blog/my-post
 git commit -m "add post"
 git push
 ```
+
