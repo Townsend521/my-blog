@@ -28,3 +28,32 @@
     });
   })();
 </script>
+<script>
+  (function () {
+    function updateCardReadingTimes() {
+      var cards = document.querySelectorAll('[role="article"][aria-labelledby^="card-title-"]');
+      cards.forEach(function (card) {
+        var link = card.querySelector('a[href*="/blog/"]');
+        var stat = Array.from(card.querySelectorAll("span")).find(function (el) {
+          return /分钟阅读时长/.test(el.textContent || "");
+        });
+        if (!link || !stat) return;
+
+        fetch(link.href, { credentials: "same-origin" })
+          .then(function (res) { return res.ok ? res.text() : ""; })
+          .then(function (html) {
+            if (!html) return;
+            var match = html.match(/(\d+)\s*分钟阅读时长/);
+            if (match) stat.textContent = match[1] + " 分钟阅读时长";
+          })
+          .catch(function () {});
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", updateCardReadingTimes);
+    } else {
+      updateCardReadingTimes();
+    }
+  })();
+</script>
