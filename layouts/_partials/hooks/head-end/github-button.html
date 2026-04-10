@@ -13,3 +13,18 @@
     }
   })();
 </script>
+<script>
+  (function () {
+    document.addEventListener("click", function (e) {
+      var trigger = e.target.closest(".nav-item.nav-dropdown > span.nav-link");
+      if (!trigger) return;
+      if ((trigger.textContent || "").indexOf("博客") === -1) return;
+
+      var home = document.querySelector("a.navbar-brand");
+      var base = (home && home.getAttribute("href")) || "/";
+      base = base.endsWith("/") ? base : base + "/";
+
+      window.location.href = base + "blog/";
+    });
+  })();
+</script>
