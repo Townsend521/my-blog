@@ -8,6 +8,10 @@ tags:
   - 气象数据
   - Python
   - 教程
+image:
+  filename: featured.png
+  focal_point: Center
+  preview_only: true
 ---
 # ERA5 数据下载教程
 
