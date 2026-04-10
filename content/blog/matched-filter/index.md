@@ -7,6 +7,9 @@ tags:
   - 遥感反演
   - 匹配滤波
   - 方法论
+image:
+  filename: featured.png
+  focal_point: Center
 ---
 在处理高分辨率点源卫星（如 GHGSat、PRISMA 或 EMIT）数据时，我们经常会面临一个棘手的挑战：如何从极其复杂的地表背景中，提取出微弱的特定气体（如甲烷）吸收信号？
 
