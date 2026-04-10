@@ -1,4 +1,4 @@
----
+﻿---
 title: "拨开云雾见甲烷：一文读懂遥感反演中的匹配滤波 (Matched Filter) 算法"
 date: 2026-04-10T10:00:00+08:00
 draft: false
@@ -14,7 +14,7 @@ tags:
 
 为了解决这个“大海捞针”的问题，**匹配滤波（Matched Filter, MF）** 算法成为了目前进行甲烷羽流检测与浓度量化最主流、最高效的手段。
 
-![](Gemini_Generated_Image_6w910l6w910l6w91 (1).png)
+![](matched-filter-cover.png)
 
  ---
 
