@@ -1,1 +1,15 @@
 <script async defer src="https://buttons.github.io/buttons.js"></script>
+<style>
+  .hb-hide-blog-hero .article-cover,
+  .hb-hide-blog-hero .featured-image-wrapper {
+    display: none !important;
+  }
+</style>
+<script>
+  (function () {
+    var p = window.location.pathname || "";
+    if (/\/blog\/[^/]+\/?$/.test(p)) {
+      document.documentElement.classList.add("hb-hide-blog-hero");
+    }
+  })();
+</script>
