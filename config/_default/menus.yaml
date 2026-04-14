@@ -17,7 +17,6 @@ main:
 
   - name: 读书笔记
     url: blog/du-shu-bi-ji/
-    parent: 博客
     weight: 13
 
   - name: 经历
