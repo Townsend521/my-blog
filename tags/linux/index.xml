@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Linux | Townsend 学术主页</title><link>https://townsend521.github.io/my-blog/tags/linux/</link><atom:link href="https://townsend521.github.io/my-blog/tags/linux/index.xml" rel="self" type="application/rss+xml"/><description>Linux</description><generator>HugoBlox Kit (https://hugoblox.com)</generator><language>zh-CN</language><lastBuildDate>Thu, 16 Apr 2026 14:50:00 +0800</lastBuildDate><image><url>https://townsend521.github.io/my-blog/media/icon_hu_da05098ef60dc2e7.png</url><title>Linux</title><link>https://townsend521.github.io/my-blog/tags/linux/</link></image><item><title>SSH 免密登录教程：从原理到实战，一次配置永久生效</title><link>https://townsend521.github.io/my-blog/blog/ssh-passwordless-login/</link><pubDate>Thu, 16 Apr 2026 14:50:00 +0800</pubDate><guid>https://townsend521.github.io/my-blog/blog/ssh-passwordless-login/</guid><description>
+&lt;div class="callout flex px-4 py-3 mb-6 rounded-md border-l-4 bg-blue-100 dark:bg-blue-900 border-blue-500"
+data-callout="note"
+data-callout-metadata=""&gt;
+&lt;span class="callout-icon pr-3 pt-1 text-blue-600 dark:text-blue-300"&gt;
+&lt;svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"&gt;&lt;path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8l.8-2.685a4.5 4.5 0 0 1 1.13-1.897zm0 0L19.5 7.125"/&gt;&lt;/svg&gt;
+&lt;/span&gt;
+&lt;div class="callout-content dark:text-neutral-300"&gt;
+&lt;div class="callout-title font-semibold mb-1"&gt;注意&lt;/div&gt;
+&lt;div class="callout-body"&gt;&lt;p&gt;&lt;strong&gt;适用场景&lt;/strong&gt;：Windows 本地 → Linux 远程服务器（HPC 集群、实验室工作站等）。
+配置一次，永久免密。全文约 5 分钟。&lt;/p&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2 id="一为什么要配置免密登录"&gt;一、为什么要配置免密登录？&lt;/h2&gt;
+&lt;p&gt;每次 &lt;code&gt;ssh&lt;/code&gt; 都要手动输入密码，不仅&lt;strong&gt;操作繁琐&lt;/strong&gt;，还存在安全隐患——密码在网络传输中可能被截获。&lt;/p&gt;
+&lt;p&gt;SSH 密钥认证使用&lt;strong&gt;非对称加密&lt;/strong&gt;替代密码登录，同时解决了这两个问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;🔒 &lt;strong&gt;更安全&lt;/strong&gt; — 私钥从不离开本机，无法被中间人截获&lt;/li&gt;
+&lt;li&gt;⚡ &lt;strong&gt;更方便&lt;/strong&gt; — 连接时自动完成身份验证，无需交互&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id="二原理图解"&gt;二、原理图解&lt;/h2&gt;
+&lt;p&gt;SSH 密钥是&lt;strong&gt;成对出现&lt;/strong&gt;的两个文件：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="text-align: center"&gt;文件&lt;/th&gt;
+&lt;th style="text-align: left"&gt;存放位置&lt;/th&gt;
+&lt;th style="text-align: left"&gt;作用&lt;/th&gt;
+&lt;th style="text-align: center"&gt;能否公开&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style="text-align: center"&gt;🔑 &lt;strong&gt;私钥&lt;/strong&gt; &lt;code&gt;id_rsa&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;你的电脑 &lt;code&gt;~/.ssh/&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;签名，证明&amp;quot;我是我&amp;quot;&lt;/td&gt;
+&lt;td style="text-align: center"&gt;❌ 绝不泄露&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: center"&gt;🔓 &lt;strong&gt;公钥&lt;/strong&gt; &lt;code&gt;id_rsa.pub&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;服务器 &lt;code&gt;~/.ssh/authorized_keys&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;验证签名&lt;/td&gt;
+&lt;td style="text-align: center"&gt;✅ 可以公开&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id="四步握手流程"&gt;四步握手流程&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; 你的电脑 (客户端) 远程服务器
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; │ │
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; ① │──── &amp;#34;我是 &amp;lt;用户名&amp;gt;&amp;#34; ───────────────→│
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; │ │
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; ② │←─── 找到公钥，发送随机挑战 ─────────│
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; │ │
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; ③ │──── 用私钥签名挑战 ────────────────→│
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; │ │
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; ④ │←─── 用公钥验证签名 → ✅ 免密登录！ ──│
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class="callout flex px-4 py-3 mb-6 rounded-md border-l-4 bg-emerald-100 dark:bg-emerald-900 border-emerald-500"
+data-callout="tip"
+data-callout-metadata=""&gt;
+&lt;span class="callout-icon pr-3 pt-1 text-emerald-600 dark:text-emerald-300"&gt;
+&lt;svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"&gt;&lt;path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18v-5.25m0 0a6 6 0 0 0 1.5-.189m-1.5.189a6 6 0 0 1-1.5-.189m3.75 7.478a12.1 12.1 0 0 1-4.5 0m3.75 2.383a14.4 14.4 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/&gt;&lt;/svg&gt;
+&lt;/span&gt;
+&lt;div class="callout-content dark:text-neutral-300"&gt;
+&lt;div class="callout-title font-semibold mb-1"&gt;提示&lt;/div&gt;
+&lt;div class="callout-body"&gt;&lt;p&gt;&lt;strong&gt;直觉理解&lt;/strong&gt;：把公钥当作一把&amp;quot;锁&amp;quot;装在服务器门上，私钥是唯一配套的&amp;quot;钥匙&amp;quot;。能开锁 = 证明身份 = 不用密码。&lt;/p&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id="三操作步骤"&gt;三、操作步骤&lt;/h2&gt;
+&lt;h3 id="31--检查是否已有密钥"&gt;3.1 🔍 检查是否已有密钥&lt;/h3&gt;
+&lt;p&gt;打开 &lt;strong&gt;PowerShell&lt;/strong&gt; 或 &lt;strong&gt;cmd&lt;/strong&gt;：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;type &lt;/span&gt;&lt;span class="nv"&gt;$env:USERPROFILE&lt;/span&gt;&lt;span class="p"&gt;\.&lt;/span&gt;&lt;span class="n"&gt;ssh&lt;/span&gt;&lt;span class="p"&gt;\&lt;/span&gt;&lt;span class="n"&gt;id_rsa&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;pub&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="text-align: left"&gt;输出结果&lt;/th&gt;
+&lt;th style="text-align: left"&gt;说明&lt;/th&gt;
+&lt;th style="text-align: left"&gt;操作&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;显示 &lt;code&gt;ssh-rsa AAAAB3...&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;✅ 已有密钥&lt;/td&gt;
+&lt;td style="text-align: left"&gt;直接跳到 &lt;strong&gt;3.3&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;报错&amp;quot;找不到文件&amp;quot;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;❌ 尚未生成&lt;/td&gt;
+&lt;td style="text-align: left"&gt;继续 &lt;strong&gt;3.2&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id="32--生成密钥对仅首次"&gt;3.2 🔧 生成密钥对（仅首次）&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;ssh-keygen&lt;/span&gt; &lt;span class="n"&gt;-t&lt;/span&gt; &lt;span class="n"&gt;rsa&lt;/span&gt; &lt;span class="n"&gt;-b&lt;/span&gt; &lt;span class="mf"&gt;4096&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;连按 &lt;strong&gt;三次回车&lt;/strong&gt;（全部使用默认值，不设密码短语）：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Generating public/private rsa key pair.
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Enter file in which to save the key (.../.ssh/id_rsa): ← 回车
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Enter passphrase (empty for no passphrase): ← 回车
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Enter same passphrase again: ← 回车
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;生成完毕后，&lt;code&gt;C:\Users\你的用户名\.ssh\&lt;/code&gt; 目录下会出现两个文件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;id_rsa&lt;/code&gt; — 私钥 ⚠️ &lt;strong&gt;绝对不要发给任何人&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;id_rsa.pub&lt;/code&gt; — 公钥（需复制到服务器）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="33--一键推送公钥到服务器"&gt;3.3 📤 一键推送公钥到服务器&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;type &lt;/span&gt;&lt;span class="nv"&gt;$env:USERPROFILE&lt;/span&gt;&lt;span class="p"&gt;\.&lt;/span&gt;&lt;span class="n"&gt;ssh&lt;/span&gt;&lt;span class="p"&gt;\&lt;/span&gt;&lt;span class="n"&gt;id_rsa&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;pub&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="n"&gt;ssh&lt;/span&gt; &lt;span class="n"&gt;-p&lt;/span&gt; &lt;span class="n"&gt;端口号&lt;/span&gt; &lt;span class="n"&gt;用户名&lt;/span&gt;&lt;span class="nv"&gt;@服务器地址&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;mkdir -p ~/.ssh &amp;amp;&amp;amp; chmod 700 ~/.ssh &amp;amp;&amp;amp; cat &amp;gt;&amp;gt; ~/.ssh/authorized_keys &amp;amp;&amp;amp; chmod 600 ~/.ssh/authorized_keys&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;实际例子&lt;/strong&gt;（中科算联云 · 西北 1 集群）：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;type &lt;/span&gt;&lt;span class="nv"&gt;$env:USERPROFILE&lt;/span&gt;&lt;span class="p"&gt;\.&lt;/span&gt;&lt;span class="n"&gt;ssh&lt;/span&gt;&lt;span class="p"&gt;\&lt;/span&gt;&lt;span class="n"&gt;id_rsa&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;pub&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; &lt;span class="n"&gt;ssh&lt;/span&gt; &lt;span class="n"&gt;-p&lt;/span&gt; &lt;span class="mf"&gt;50888&lt;/span&gt; &lt;span class="p"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;用户名&lt;/span&gt;&lt;span class="p"&gt;&amp;gt;&lt;/span&gt;&lt;span class="nv"&gt;@c1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;hpcmaster&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;com&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;mkdir -p ~/.ssh &amp;amp;&amp;amp; chmod 700 ~/.ssh &amp;amp;&amp;amp; cat &amp;gt;&amp;gt; ~/.ssh/authorized_keys &amp;amp;&amp;amp; chmod 600 ~/.ssh/authorized_keys&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class="callout flex px-4 py-3 mb-6 rounded-md border-l-4 bg-orange-100 dark:bg-orange-900 border-orange-500"
+data-callout="warning"
+data-callout-metadata=""&gt;
+&lt;span class="callout-icon pr-3 pt-1 text-orange-600 dark:text-orange-300"&gt;
+&lt;svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"&gt;&lt;path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0zM12 15.75h.007v.008H12z"/&gt;&lt;/svg&gt;
+&lt;/span&gt;
+&lt;div class="callout-content dark:text-neutral-300"&gt;
+&lt;div class="callout-title font-semibold mb-1"&gt;警告&lt;/div&gt;
+&lt;div class="callout-body"&gt;&lt;p&gt;首次连接会提示 &lt;code&gt;Are you sure you want to continue connecting?&lt;/code&gt;，输入 &lt;code&gt;yes&lt;/code&gt;。随后需要输入一次密码——&lt;strong&gt;这是你最后一次输入密码&lt;/strong&gt;。&lt;/p&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;details&gt;
+&lt;summary&gt;📋 命令逐段拆解（点击展开）&lt;/summary&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="text-align: left"&gt;部分&lt;/th&gt;
+&lt;th style="text-align: left"&gt;作用&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;&lt;code&gt;type ...id_rsa.pub&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;读取本地公钥内容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;&lt;code&gt;|&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;通过管道传输给远程 SSH&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;&lt;code&gt;mkdir -p ~/.ssh&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;在服务器上创建 &lt;code&gt;.ssh&lt;/code&gt; 目录&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;&lt;code&gt;chmod 700 ~/.ssh&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;设置目录权限（仅本人可访问）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;&lt;code&gt;cat &amp;gt;&amp;gt; ~/.ssh/authorized_keys&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;将公钥追加到授权列表&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;&lt;code&gt;chmod 600 ~/.ssh/authorized_keys&lt;/code&gt;&lt;/td&gt;
+&lt;td style="text-align: left"&gt;设置文件权限（仅本人可读写）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/details&gt;
+&lt;h3 id="34--验证免密登录"&gt;3.4 ✅ 验证免密登录&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;ssh&lt;/span&gt; &lt;span class="n"&gt;-p&lt;/span&gt; &lt;span class="mf"&gt;50888&lt;/span&gt; &lt;span class="p"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;用户名&lt;/span&gt;&lt;span class="p"&gt;&amp;gt;&lt;/span&gt;&lt;span class="nv"&gt;@c1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;hpcmaster&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="py"&gt;com&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;hostname&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;如果&lt;strong&gt;直接返回主机名&lt;/strong&gt;而没有要求密码 → 🎉 &lt;strong&gt;配置成功！&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="四进阶配置-ssh-别名"&gt;四、进阶：配置 SSH 别名&lt;/h2&gt;
+&lt;p&gt;每次输 &lt;code&gt;ssh -p 50888 &amp;lt;用户名&amp;gt;@c1.hpcmaster.com&lt;/code&gt; 太长了？配个别名，一劳永逸。&lt;/p&gt;
+&lt;p&gt;编辑 &lt;code&gt;C:\Users\你的用户名\.ssh\config&lt;/code&gt; 文件，添加：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;# ═══ 中科算联云 ═══
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Host hpc-west1
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; HostName c1.hpcmaster.com
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; Port 50888
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; User &amp;lt;用户名&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Host hpc-west
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; HostName c2.hpcmaster.com
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; Port 50888
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; User &amp;lt;用户名&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;# ═══ 矿大内网服务器 ═══
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Host cumt-server
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; HostName &amp;lt;内网服务器IP&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; Port 5911
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; User wrf4
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;配置后的效果：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;ssh&lt;/span&gt; &lt;span class="nb"&gt;hpc-west1&lt;/span&gt; &lt;span class="c"&gt;# 等价于 ssh -p 50888 &amp;lt;用户名&amp;gt;@c1.hpcmaster.com&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;ssh&lt;/span&gt; &lt;span class="nb"&gt;hpc-west&lt;/span&gt; &lt;span class="c"&gt;# 等价于 ssh -p 50888 &amp;lt;用户名&amp;gt;@c2.hpcmaster.com&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;ssh&lt;/span&gt; &lt;span class="nb"&gt;cumt-server&lt;/span&gt; &lt;span class="c"&gt;# 等价于 ssh -p 5911 wrf4@&amp;lt;内网服务器IP&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class="callout flex px-4 py-3 mb-6 rounded-md border-l-4 bg-emerald-100 dark:bg-emerald-900 border-emerald-500"
+data-callout="tip"
+data-callout-metadata=""&gt;
+&lt;span class="callout-icon pr-3 pt-1 text-emerald-600 dark:text-emerald-300"&gt;
+&lt;svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"&gt;&lt;path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18v-5.25m0 0a6 6 0 0 0 1.5-.189m-1.5.189a6 6 0 0 1-1.5-.189m3.75 7.478a12.1 12.1 0 0 1-4.5 0m3.75 2.383a14.4 14.4 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/&gt;&lt;/svg&gt;
+&lt;/span&gt;
+&lt;div class="callout-content dark:text-neutral-300"&gt;
+&lt;div class="callout-title font-semibold mb-1"&gt;提示&lt;/div&gt;
+&lt;div class="callout-body"&gt;&lt;p&gt;&lt;code&gt;scp&lt;/code&gt; 也支持别名，文件传输同样变简洁：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-powershell" data-lang="powershell"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;scp&lt;/span&gt; &lt;span class="n"&gt;本地文件&lt;/span&gt; &lt;span class="nb"&gt;hpc-west1&lt;/span&gt;&lt;span class="err"&gt;:&lt;/span&gt;&lt;span class="p"&gt;/&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;/&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="p"&gt;/&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;用户名&lt;/span&gt;&lt;span class="p"&gt;&amp;gt;/&lt;/span&gt;&lt;span class="n"&gt;目标路径&lt;/span&gt;&lt;span class="p"&gt;/&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id="五常见问题排查"&gt;五、常见问题排查&lt;/h2&gt;
+&lt;h3 id="-推送公钥后还是要密码"&gt;❓ 推送公钥后还是要密码？&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;依次检查以下三项：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;① 权限问题&lt;/strong&gt;（最常见）——SSH 对文件权限要求极严格：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;chmod &lt;span class="m"&gt;700&lt;/span&gt; ~/.ssh
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;chmod &lt;span class="m"&gt;600&lt;/span&gt; ~/.ssh/authorized_keys
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;② 公钥是否正确追加&lt;/strong&gt;：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;cat ~/.ssh/authorized_keys
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# 应看到 ssh-rsa AAAAB3... 开头的完整一行&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;③ 服务器是否开启密钥认证&lt;/strong&gt;：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;grep PubkeyAuthentication /etc/ssh/sshd_config
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# 应为 PubkeyAuthentication yes，若为 no 需联系管理员&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="-能给多台服务器配免密吗"&gt;❓ 能给多台服务器配免密吗？&lt;/h3&gt;
+&lt;p&gt;可以。&lt;strong&gt;同一把公钥&lt;/strong&gt;可以推送到任意多台服务器——重复执行 3.3 步骤，替换服务器地址即可。&lt;/p&gt;
+&lt;h3 id="-换了电脑怎么办"&gt;❓ 换了电脑怎么办？&lt;/h3&gt;
+&lt;p&gt;两种方案：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;迁移密钥&lt;/strong&gt;：把旧电脑的 &lt;code&gt;~/.ssh/id_rsa&lt;/code&gt; + &lt;code&gt;id_rsa.pub&lt;/code&gt; 复制到新电脑同一位置&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;重新生成&lt;/strong&gt;：在新电脑执行 3.2 → 3.3，重新推送新公钥&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="-私钥泄露了怎么办"&gt;❓ 私钥泄露了怎么办？&lt;/h3&gt;
+&lt;div class="callout flex px-4 py-3 mb-6 rounded-md border-l-4 bg-red-100 dark:bg-red-900 border-red-500"
+data-callout="caution"
+data-callout-metadata=""&gt;
+&lt;span class="callout-icon pr-3 pt-1 text-red-600 dark:text-red-300"&gt;
+&lt;svg height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"&gt;&lt;path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0zM12 15.75h.007v.008H12z"/&gt;&lt;/svg&gt;
+&lt;/span&gt;
+&lt;div class="callout-content dark:text-neutral-300"&gt;
+&lt;div class="callout-title font-semibold mb-1"&gt;小心&lt;/div&gt;
+&lt;div class="callout-body"&gt;&lt;p&gt;私钥泄露属于严重安全事件，请立即执行：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;登录&lt;strong&gt;每台&lt;/strong&gt;已配置的服务器，编辑 &lt;code&gt;~/.ssh/authorized_keys&lt;/code&gt;，&lt;strong&gt;删除旧公钥&lt;/strong&gt;对应的行&lt;/li&gt;
+&lt;li&gt;在本地重新 &lt;code&gt;ssh-keygen&lt;/code&gt; 生成新密钥对&lt;/li&gt;
+&lt;li&gt;重新推送新公钥到所有服务器&lt;/li&gt;
+&lt;/ol&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h3 id="-warning-remote-port-forwarding-failed-for-listen-port-7890"&gt;❓ &lt;code&gt;Warning: remote port forwarding failed for listen port 7890&lt;/code&gt;？&lt;/h3&gt;
+&lt;p&gt;这是代理软件（如 Clash）的端口转发配置导致的，&lt;strong&gt;不影响 SSH 连接&lt;/strong&gt;，可以安全忽略。
+如需消除警告，检查 SSH config 中是否有 &lt;code&gt;RemoteForward&lt;/code&gt; 相关行并移除。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="六安全建议速查"&gt;六、安全建议速查&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="text-align: left"&gt;🛡️ 做法&lt;/th&gt;
+&lt;th style="text-align: left"&gt;📌 建议&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;私钥文件&lt;/td&gt;
+&lt;td style="text-align: left"&gt;&lt;strong&gt;永远不要&lt;/strong&gt;发给他人、上传 GitHub、或复制到不信任的设备&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;密码短语&lt;/td&gt;
+&lt;td style="text-align: left"&gt;对高安全需求场景，建议在 &lt;code&gt;ssh-keygen&lt;/code&gt; 时设置 passphrase&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;定期轮换&lt;/td&gt;
+&lt;td style="text-align: left"&gt;每 &lt;strong&gt;1–2 年&lt;/strong&gt;更换一次密钥对&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style="text-align: left"&gt;清理旧钥&lt;/td&gt;
+&lt;td style="text-align: left"&gt;定期检查 &lt;code&gt;authorized_keys&lt;/code&gt;，删除不再使用的旧公钥&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;</description></item></channel></rss>
